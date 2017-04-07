@@ -1,7 +1,9 @@
 package tree;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Stack;
 
 import machine.Operation;
@@ -218,18 +220,35 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
 	public Code visitCaseNode(StatementNode.CaseNode node) {
 		beginGen( "Case" );
 		Code code = new Code();
+		List<Integer> constants = new ArrayList<Integer>();
+		List<Code> branches = new ArrayList<Code>();
 		int totalCode = 0;
 		
-		for(BranchNode b: node.getBranches()) {
-			code.append(node.getCondition().genCode(this));
-			code.generateOp(Operation.EQUAL);
-			Code branch = b.genCode(this);
-			code.genJumpIfFalse(branch.size()+1);
-			code.append(branch);
-			totalCode += branch.size()+1;
+		for (BranchNode b: node.getBranches()) {
+			branches.add(b.genCode(this));
+			constants.add(b.getConstant().getValue());
+		}
+	
+		for (int i=0; i<constants.size(); i++) {
+			Code jumper = new Code();
+
+			jumper.append(node.getCondition().genCode(this));
+			jumper.genLoadConstant(constants.get(i));
+			jumper.generateOp(Operation.EQUAL);
+			
+			jumper.genJumpIfFalse(totalCode + ((jumper.size()) * (constants.size()-i)));
+
+			totalCode+=branches.get(i).size();
+			
+			code.append(jumper);
 		}
 		
 		code.genJumpAlways(totalCode);
+		
+		for(Code c: branches) {
+			code.append(c);
+		}
+		
 		code.append(node.getDefault().genCode(this));
 		
 		endGen( "Case" );
@@ -239,13 +258,8 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
 	//Generate code for a "branch" statement
 	public Code visitBranchNode(StatementNode.BranchNode node) {
 		beginGen( "Branch" );
-		Code code = new Code();
 		
-		Code branchCode = node.getList().genCode(this);
-		
-		code.genLoadConstant(node.getConstant().getValue());
-		
-		code.append(branchCode);
+		Code code =  node.getList().genCode(this);
 		
 		endGen( "Branch" );
 		return code;

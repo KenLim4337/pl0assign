@@ -241,11 +241,17 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
     		if(type instanceof Type.SubrangeType) {
     			if (!(type.containsElement(constant.getType(), constant.getValue()))) {
     				staticError( "case label type does not match case expression type", b.getConstant().loc );
+    			} else {
+            		if (checked.contains(constant.value)) {
+            			staticError( "repeated label in case branch", b.getConstant().loc );
+            		} else {
+            			checked.add(constant.value);
+            		}
     			}
-    		} else if (!(constant.getType().equals(type))) {
-        		staticError( "case label type does not match case expression type", b.getConstant().loc );
         	} else {
-        		if (checked.contains(constant.value)) {
+        		if (!(constant.getType().equals(type))) {
+             		staticError( "case label type does not match case expression type", b.getConstant().loc );
+        		}else if (checked.contains(constant.value)) {
         			staticError( "repeated label in case branch", b.getConstant().loc );
         		} else {
         			checked.add(constant.value);

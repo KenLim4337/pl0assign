@@ -1,25 +1,19 @@
-var 
-  x: int;
-  b: boolean;
+type S = [1..5];
+var i : S;
 begin
-  x := 3;
-  while x >= 0 do
-  begin
-    case x of
-    when 0: write 0
-    when true: write 1
-    when 1: write 2
-    when 1: write 3
-    when 1: write 4
-    when false: write 5
-    default write 6
-    end;
-    case b of
-    when true: write 7
-    when true: write 8
-    when false: write 9
-    default write 10
-    end;
-    x := x-1
+  i := 2;
+  case i of
+  when 0: write 100 // out of subrange [1..5]
+  when 1: write 101
+  when 2: write 102
+  when 2: write 103
+  when 3: write 103
+  when 4: write 104
+  when 2: write 104
+  when true: write 105
+  when 6: write 106
+  when 5: write 105
+  when 2: write 102
+  when i: write 103
   end
 end

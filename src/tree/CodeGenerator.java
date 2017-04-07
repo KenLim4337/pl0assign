@@ -216,19 +216,38 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
 
 	//Generate code for a "case" statement
 	public Code visitCaseNode(StatementNode.CaseNode node) {
+		beginGen( "Case" );
 		Code code = new Code();
+		int totalCode = 0;
 		
+		for(BranchNode b: node.getBranches()) {
+			code.append(node.getCondition().genCode(this));
+			code.generateOp(Operation.EQUAL);
+			Code branch = b.genCode(this);
+			code.genJumpIfFalse(branch.size()+1);
+			code.append(branch);
+			totalCode += branch.size()+1;
+		}
 		
+		code.genJumpAlways(totalCode);
+		code.append(node.getDefault().genCode(this));
 		
+		endGen( "Case" );
 		return code;
 	}
 
 	//Generate code for a "branch" statement
 	public Code visitBranchNode(StatementNode.BranchNode node) {
+		beginGen( "Branch" );
 		Code code = new Code();
 		
+		Code branchCode = node.getList().genCode(this);
 		
+		code.genLoadConstant(node.getConstant().getValue());
 		
+		code.append(branchCode);
+		
+		endGen( "Branch" );
 		return code;
 	}
 

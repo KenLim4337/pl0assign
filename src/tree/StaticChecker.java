@@ -257,7 +257,6 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
         			checked.add(constant.value);
         		}
         	}
-    		
     		b.accept(this);
     	}
     	

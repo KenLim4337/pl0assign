@@ -225,6 +225,8 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
     	
     	ExpNode cond = node.getCondition().transform(this);
     	
+    	List<Integer> checked = new ArrayList<Integer>();
+    	
     	node.addCondition(cond);
     	
     	Type type = node.getCondition().getType();
@@ -235,15 +237,21 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
     	
     	for(BranchNode b: node.getBranches()) {
     		ConstExp constant = b.getConstant();
-
+    		
     		if(type instanceof Type.SubrangeType) {
     			if (!(type.containsElement(constant.getType(), constant.getValue()))) {
     				staticError( "case label type does not match case expression type", b.getConstant().loc );
     			}
     		} else if (!(constant.getType().equals(type))) {
         		staticError( "case label type does not match case expression type", b.getConstant().loc );
+        	} else {
+        		if (checked.contains(constant.value)) {
+        			staticError( "repeated label in case branch", b.getConstant().loc );
+        		} else {
+        			checked.add(constant.value);
+        		}
         	}
-        	
+    		
     		b.accept(this);
     	}
     	

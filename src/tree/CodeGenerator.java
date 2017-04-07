@@ -222,34 +222,83 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
 		Code code = new Code();
 		List<Integer> constants = new ArrayList<Integer>();
 		List<Code> branches = new ArrayList<Code>();
+		Code def = node.getDefault().genCode(this);
+		Code cond = node.getCondition().genCode(this);
 		int totalCode = 0;
 		
 		for (BranchNode b: node.getBranches()) {
-			branches.add(b.genCode(this));
+			
+			Code temp = b.genCode(this);
+			
+			totalCode += temp.size();
+			
+			branches.add(temp);
+			
 			constants.add(b.getConstant().getValue());
 		}
-	
-		for (int i=0; i<constants.size(); i++) {
-			Code jumper = new Code();
-
-			jumper.append(node.getCondition().genCode(this));
-			jumper.genLoadConstant(constants.get(i));
-			jumper.generateOp(Operation.EQUAL);
-			
-			jumper.genJumpIfFalse(totalCode + ((jumper.size()) * (constants.size()-i)));
-
-			totalCode+=branches.get(i).size();
-			
-			code.append(jumper);
-		}
 		
+		/*
+		for (int i=0; i < constants.size(); i++) {
+			Code comparator = new Code();
+			
+			int remaining = constants.size() - (i+1);
+			
+			comparator.append(node.getCondition().genCode(this));
+			comparator.genLoadConstant(constants.get(i));
+			comparator.generateOp(Operation.EQUAL);
+			
+			comparator.genJumpIfFalse(3);
+			
+			int interval = ((comparator.size()+3)  * remaining);
+			
+			comparator.genJumpAlways(totalCode + interval);
+			
+			System.out.println(totalCode + " " + interval);
+			
+			totalCode += branches.get(i).size() + 3;
+			
+			code.append(comparator);
+		}
+			
 		code.genJumpAlways(totalCode);
 		
-		for(Code c: branches) {
-			code.append(c);
+		for(int i=0; i < branches.size(); i++) {
+			code.append(branches.get(i));
+			code.genJumpAlways(totalCode - branches.get(i).size()-3);
 		}
 		
-		code.append(node.getDefault().genCode(this));
+		if(node.getDefault().getStatements().size()!=0) {
+			code.append(node.getDefault().genCode(this));
+		}
+		*/
+		
+		totalCode += (branches.size() * (cond.size() + 6)) + def.size();
+		
+		for (int i=0; i < branches.size(); i++) {
+			Code comparator = new Code();
+			
+			comparator.append(cond);
+			comparator.genLoadConstant(constants.get(i));
+			comparator.generateOp(Operation.EQUAL);
+				
+			totalCode -= cond.size();
+		
+			System.out.println(totalCode);
+			
+			comparator.genJumpIfFalse(totalCode);
+			
+			totalCode -= branches.get(i).size();
+					
+			code.append(comparator);
+			code.append(branches.get(i));
+		}
+		
+		
+		if (node.getDefault().getStatements().size()!=0) {
+			code.append(def);
+		}
+		
+		
 		
 		endGen( "Case" );
 		return code;

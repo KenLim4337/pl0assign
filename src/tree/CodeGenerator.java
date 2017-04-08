@@ -220,85 +220,44 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
 	public Code visitCaseNode(StatementNode.CaseNode node) {
 		beginGen( "Case" );
 		Code code = new Code();
-		List<Integer> constants = new ArrayList<Integer>();
 		List<Code> branches = new ArrayList<Code>();
 		Code def = node.getDefault().genCode(this);
 		Code cond = node.getCondition().genCode(this);
-		int totalCode = 0;
 		
 		for (BranchNode b: node.getBranches()) {
 			
 			Code temp = b.genCode(this);
-			
-			totalCode += temp.size();
-			
 			branches.add(temp);
-			
-			constants.add(b.getConstant().getValue());
 		}
 		
-		/*
-		for (int i=0; i < constants.size(); i++) {
-			Code comparator = new Code();
+		for (int i = 0; i < branches.size(); i++) {
 			
-			int remaining = constants.size() - (i+1);
+			Code branch = new Code();
 			
-			comparator.append(node.getCondition().genCode(this));
-			comparator.genLoadConstant(constants.get(i));
-			comparator.generateOp(Operation.EQUAL);
+			branch.append(node.getCondition().genCode(this));
 			
-			comparator.genJumpIfFalse(3);
+			branch.append(branches.get(i));
 			
-			int interval = ((comparator.size()+3)  * remaining);
+			int interval = 0;
 			
-			comparator.genJumpAlways(totalCode + interval);
+			if(i != branches.size()-1) {
+				for (int j = i+1; j < branches.size(); j++) {
+					interval += cond.size();
+					interval += branches.get(j).size();
+					interval += Code.SIZE_JUMP_ALWAYS;
+				}
+			} else {
+				interval = 0;
+			}
 			
-			System.out.println(totalCode + " " + interval);
+			interval += def.size();
 			
-			totalCode += branches.get(i).size() + 3;
+			branch.genJumpAlways(interval);
 			
-			code.append(comparator);
-		}
-			
-		code.genJumpAlways(totalCode);
-		
-		for(int i=0; i < branches.size(); i++) {
-			code.append(branches.get(i));
-			code.genJumpAlways(totalCode - branches.get(i).size()-3);
+			code.append(branch);
 		}
 		
-		if(node.getDefault().getStatements().size()!=0) {
-			code.append(node.getDefault().genCode(this));
-		}
-		*/
-		
-		totalCode += (branches.size() * (cond.size() + 6)) + def.size();
-		
-		for (int i=0; i < branches.size(); i++) {
-			Code comparator = new Code();
-			
-			comparator.append(cond);
-			comparator.genLoadConstant(constants.get(i));
-			comparator.generateOp(Operation.EQUAL);
-				
-			totalCode -= cond.size();
-		
-			System.out.println(totalCode);
-			
-			comparator.genJumpIfFalse(totalCode);
-			
-			totalCode -= branches.get(i).size();
-					
-			code.append(comparator);
-			code.append(branches.get(i));
-		}
-		
-		
-		if (node.getDefault().getStatements().size()!=0) {
-			code.append(def);
-		}
-		
-		
+		code.append(def);
 		
 		endGen( "Case" );
 		return code;
@@ -308,7 +267,17 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
 	public Code visitBranchNode(StatementNode.BranchNode node) {
 		beginGen( "Branch" );
 		
-		Code code =  node.getList().genCode(this);
+		Code code =  new Code();
+		
+		Code branchDo = node.getList().genCode(this);
+		
+		code.genLoadConstant(node.getConstant().getValue());
+		
+		code.generateOp(Operation.EQUAL);
+
+		code.genJumpIfFalse(branchDo.size() + Code.SIZE_JUMP_ALWAYS);
+		
+		code.append(branchDo);
 		
 		endGen( "Branch" );
 		return code;
